@@ -1,0 +1,42 @@
+services:
+  pihole:
+    container_name: pihole
+    hostname: pi-hole
+    image: pihole/pihole:latest
+    ports:
+      - 53:53/tcp # Plain DNS TCP
+      - 53:53/udp # Plain DNS UDP
+      - 67:67/udp # DHCP IPv4 UDP
+      - 8080:80/tcp # HTTP Web Interface
+    environment:
+      - TZ=America/Sao_Paulo
+      - WEBPASSWORD=password
+      - QUERY_LOGGING=false
+      - DHCP_ACTIVE=false
+      - PIHOLE_DNS_=unbound#5335;unbound#5335
+    volumes:
+      - ./pihole/:/etc/pihole/
+      - ./dnsmasq/:/etc/dnsmasq.d/
+    restart: unless-stopped
+    dns:
+      - 127.0.0.1
+    depends_on:
+      - unbound
+  unbound:
+    container_name: unbound
+    hostname: unbound
+    image: mvance/unbound-rpi:latest
+    ports:
+      - 5335:5335/tcp
+      - 5335:5335/udp
+    environment:
+      - TZ=America/Sao_Paulo
+    volumes:
+#      - ./unbound/unbound.conf:/opt/unbound/etc/unbound/unbound.conf
+#      - ./unbound/forward-records.conf:/opt/unbound/etc/unbound/forward-records.conf
+      - ./unbound/:/opt/unbound/etc/unbound/
+    restart: unless-stopped
+    healthcheck:
+      test: drill google.com @127.0.0.1 -p 5335 || exit 1
+      interval: 5m
+      timeout: 5s
